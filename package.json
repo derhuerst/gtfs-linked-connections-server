@@ -1,0 +1,37 @@
+{
+	"name": "gtfs-linked-connections-server",
+	"description": "A Linked Connections server using PostgreSQL to serve GTFS.",
+	"version": "1.0.0",
+	"main": "index.js",
+	"files": [
+		"index.js",
+		"example.js"
+	],
+	"keywords": [
+		"gtfs",
+		"linked connections",
+		"linked data",
+		"rdf",
+		"json-ld",
+		"transit",
+		"public transport"
+	],
+	"author": "Jannis R <mail@jannisr.de>",
+	"homepage": "https://github.com/derhuerst/gtfs-linked-connections-server",
+	"repository": "derhuerst/gtfs-linked-connections-server",
+	"bugs": "https://github.com/derhuerst/gtfs-linked-connections-server/issues",
+	"license": "ISC",
+	"engines": {
+		"node": ">=14"
+	},
+	"dependencies": {
+	},
+	"devDependencies": {
+		"eslint": "^7.9.0"
+	},
+	"scripts": {
+		"test": "node test.js",
+		"lint": "eslint .",
+		"prepublishOnly": "npm run lint && npm test"
+	}
+}
