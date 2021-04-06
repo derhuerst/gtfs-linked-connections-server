@@ -1,8 +1,23 @@
 'use strict'
 
+const {Client: PgClient} = require('pg')
 const serveLinkedConnections = require('./lib/serve-linked-connections')
 
-const serveGtfsAsLinkedConnections = (opt = {}) => {
+const serveGtfsAsLinkedConnections = async (opt = {}) => {
+	const {
+		getDbClient,
+	} = {
+		getDbClient: async () => {
+			const db = new PgClient()
+			await db.connect()
+			return db
+		},
+		// todo: hooks to transform stop/station/route/trip/connection IDs
+		...opt,
+	}
+
+	const db = await getDbClient()
+
 	const formatCoords = (lon, lat) => {
 		if ('number' !== typeof lon || 'number' !== typeof lat) return null
 		return `POINT (${lon} ${lat})`
@@ -69,9 +84,41 @@ const serveGtfsAsLinkedConnections = (opt = {}) => {
 		}
 	}
 
-	const findConnections = async (todo) => {
-		// todo
-		return []
+	const findConnections = async (query) => {
+		const {
+			'lc:departureTime': departureTime,
+			'lc:arrivalTime': arrivalTime,
+		} = query
+
+		const values = []
+		let filters = 'True'
+		let orderBy = 't_departure'
+		if (departureTime) {
+			values.push(new Date(departureTime).toISOString())
+			filters += ` AND t_departure >= $${values.length}`
+		} else if (arrivalTime) { // todo: what if both departureTime & arrivalTime?
+			values.push(new Date(arrivalTime).toISOString())
+			filters += ` AND t_arrival <= $${values.length}`
+			orderBy = 't_arrival'
+		}
+		// todo: support more filters
+
+		const res = await db.query({
+			// todo: add `name` to enable prepared statements
+			text: `
+				SELECT * -- todo: specific fields
+				FROM connections
+				WHERE ${filters}
+				LIMIT 100 -- todo: make customisable
+			`,
+			values,
+		})
+
+		return {
+			connections: res.rows.map(formatConnection),
+			// todo
+			relations: [],
+		}
 	}
 
 	return serveLinkedConnections({
