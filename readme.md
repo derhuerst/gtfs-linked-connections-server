@@ -8,6 +8,8 @@
 [![support me via GitHub Sponsors](https://img.shields.io/badge/support%20me-donate-fa7664.svg)](https://github.com/sponsors/derhuerst)
 [![chat with me on Twitter](https://img.shields.io/badge/chat%20with%20me-on%20Twitter-1da1f2.svg)](https://twitter.com/derhuerst)
 
+*Note:* This projects follows the [Linked Connections 2.0 draft](https://docs.google.com/document/d/1d-1zT-6kkRNEn781VlvojH6ea-EHtwB1-BXT9uOyfTk/edit?ts=5e7fce43) as of `2020-03-18`.
+
 
 ## Installation
 

@@ -5,6 +5,12 @@ const {stringify: encodeQuery} = require('querystring')
 const omit = require('lodash/omit')
 const serveLinkedConnections = require('./lib/serve-linked-connections')
 
+// todo: Non-normative note: when translating data from GTFS feeds, URIs for gtfs:block, stops, routes and trips should be carefully designed to be persistent across updates of the GTFS feed.
+
+// todo: expose GTFS feed_info.txt as `dcat` metadata
+
+// todo: https://en.wikipedia.org/wiki/Skip_graph
+
 // This follows http://vocab.gtfs.org/gtfs.ttl as of 2021-04-06
 // see also https://web.archive.org/web/20201010044144/http://vocab.gtfs.org/gtfs.ttl
 // todo: adapt to the current Linked GTFS spec on GitHub
@@ -46,9 +52,6 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		routeId: defaultRouteId,
 		...opt,
 	}
-
-	// todo: let `serveLinkedConnections` pass this in here
-	const connectionsUrl = query => `/connections?${encodeQuery(query)}`
 
 	const db = await getDbClient()
 
@@ -132,7 +135,9 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 
 	const findConnections = async (query) => {
 		const {
+			// todo: rename to minDepartureTime, add maxDepartureTime
 			'lc:departureTime': departureTime,
+			// todo: rename to maxArrivalTime, add minArrivalTime
 			'lc:arrivalTime': arrivalTime,
 		} = query
 
@@ -142,11 +147,12 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		if (departureTime) {
 			values.push(new Date(departureTime).toISOString())
 			filters += ` AND t_departure >= $${values.length}`
-		} else if (arrivalTime) { // todo: what if both departureTime & arrivalTime?
+		} else if (arrivalTime) {
 			values.push(new Date(arrivalTime).toISOString())
 			filters += ` AND t_arrival <= $${values.length}`
 			orderBy = 't_arrival'
 		}
+		// todo: fail if both departureTime & arrivalTime
 		// todo: support more filters
 
 		const res = await db.query({
@@ -155,7 +161,8 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 				SELECT * -- todo: specific fields
 				FROM connections
 				WHERE ${filters}
-				LIMIT 100 -- todo: make customisable
+				ORDER BY ${orderBy}
+				LIMIT 10 -- todo: make customisable
 			`,
 			values,
 		})
@@ -168,7 +175,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 			relations: [{
 				// todo: more than `LIMIT` connections with one t_dep? add offset?
 				'@type': 'tree:GreaterThanOrEqualToRelation',
-				'tree:node': connectionsUrl({
+				'tree:node': '?' + encodeQuery({
 					...omit(query, ['lc:arrivalTime']),
 					'lc:departureTime': lastRow.t_departure.toISOString(),
 				}),
@@ -180,7 +187,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 			}, {
 				// todo: more than `LIMIT` connections with one t_arr? add offset?
 				'@type': 'tree:SmallerThanOrEqualToRelation',
-				'tree:node': connectionsUrl({
+				'tree:node': '?' + encodeQuery({
 					...omit(query, ['lc:departureTime']),
 					'lc:arrivalTime': lastRow.t_arrival.toISOString(),
 				}),
