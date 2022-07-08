@@ -1,7 +1,8 @@
 {
+	"private": true,
 	"name": "gtfs-linked-connections-server",
 	"description": "A Linked Connections server using PostgreSQL to serve GTFS.",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"main": "index.js",
 	"files": [
 		"index.js",
@@ -30,6 +31,9 @@
 		"express": "^4.17.1",
 		"lodash": "^4.17.21",
 		"pg": "^8.5.1"
+	},
+	"peerDependencies": {
+		"gtfs-via-postgres": "^2.7.0 || ^3.0.0 || ^4.0.0"
 	},
 	"devDependencies": {
 		"eslint": "^7.9.0"
