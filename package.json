@@ -28,6 +28,7 @@
 	"dependencies": {
 		"compression": "^1.7.4",
 		"cors": "^2.8.5",
+		"date-fns": "^2.29.2",
 		"express": "^4.17.1",
 		"lodash": "^4.17.21",
 		"pg": "^8.5.1"
