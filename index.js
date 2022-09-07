@@ -147,9 +147,22 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		if (departureTime) {
 			values.push(new Date(departureTime).toISOString())
 			filters += ` AND t_departure >= $${values.length}`
+
+			const dayBefore = new Date(new Date(departureTime) - 24 * 60 * 60 * 1000).toISOString()
+			// todo: handle timezones properly
+			// todo: make this offset configurable
+			values.push(dayBefore.slice(0, 4 + 1 + 2 + 1 + 2)) // local date, without time
+			filters += ` AND "date" >= $${values.length}`
 		} else if (arrivalTime) {
-			values.push(new Date(arrivalTime).toISOString())
+			const iso = new Date(arrivalTime).toISOString()
+			values.push(iso)
 			filters += ` AND t_arrival <= $${values.length}`
+
+			// todo: handle timezones properly
+			// todo: make this offset configurable
+			values.push(iso.slice(0, 4 + 1 + 2 + 1 + 2)) // local date, without time
+			filters += ` AND "date" <= $${values.length}`
+
 			orderBy = 't_arrival'
 		}
 		// todo: fail if both departureTime & arrivalTime
