@@ -4,6 +4,9 @@ const {Client: PgClient} = require('pg')
 const {stringify: encodeQuery} = require('querystring')
 const omit = require('lodash/omit')
 const serveLinkedConnections = require('./lib/serve-linked-connections')
+const {
+	formatConnectionId: defaultFormatConnectionId,
+} = require('./lib/connection-ids')
 
 // todo: Non-normative note: when translating data from GTFS feeds, URIs for gtfs:block, stops, routes and trips should be carefully designed to be persistent across updates of the GTFS feed.
 
@@ -20,10 +23,6 @@ const defaultStopId = (s) => {
 	return s.stop_id
 }
 
-const defaultConnectionId = (c) => {
-	return Math.random().toString(16).slice(2) // todo
-}
-
 const defaultTripId = (t) => {
 	return t.trip_id
 }
@@ -36,7 +35,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 	const {
 		getDbClient,
 		stopId,
-		connectionId,
+		connectionId: formatConnectionId,
 		tripId,
 		routeId,
 	} = {
@@ -47,7 +46,8 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		},
 		// todo: hooks to transform a formatted stop/station/route/trip/connection
 		stopId: defaultStopId,
-		connectionId: defaultConnectionId,
+		// todo [breaking]: rename to formatConnectionId
+		connectionId: defaultFormatConnectionId,
 		tripId: defaultTripId,
 		routeId: defaultRouteId,
 		...opt,
@@ -82,7 +82,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 
 	const formatConnection = (c) => {
 		return {
-			'@id': `/connections/${encodeURIComponent(connectionId(c))}`,
+			'@id': `/connections/${encodeURIComponent(formatConnectionId(c))}`,
 			'@type': 'lc:Connection',
 			'departureTime': c.t_departure,
 			'departureDelay': null,
