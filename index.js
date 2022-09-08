@@ -6,7 +6,15 @@ const omit = require('lodash/omit')
 const serveLinkedConnections = require('./lib/serve-linked-connections')
 const {
 	formatConnectionId: defaultFormatConnectionId,
+	parseConnectionId: defaultParseConnectionId,
 } = require('./lib/connection-ids')
+
+const err400 = (msg, data = {}) => {
+	const err = new Error(msg)
+	err.statusCode = 400
+	Object.assign(err, data)
+	return err
+}
 
 // todo: Non-normative note: when translating data from GTFS feeds, URIs for gtfs:block, stops, routes and trips should be carefully designed to be persistent across updates of the GTFS feed.
 
@@ -36,6 +44,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		getDbClient,
 		stopId,
 		connectionId: formatConnectionId,
+		parseConnectionId,
 		tripId,
 		routeId,
 	} = {
@@ -48,6 +57,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		stopId: defaultStopId,
 		// todo [breaking]: rename to formatConnectionId
 		connectionId: defaultFormatConnectionId,
+		parseConnectionId: defaultParseConnectionId,
 		tripId: defaultTripId,
 		routeId: defaultRouteId,
 		...opt,
@@ -213,9 +223,55 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		}
 	}
 
+	const getConnection = async (id) => {
+		const {
+			trip_id,
+			from_stop_id,
+			t_departure,
+			t_arrival,
+			to_stop_id,
+		} = parseConnectionId(id)
+		if (!trip_id) throw err400('invalid connection ID: missing trip_id')
+		if (!from_stop_id) throw err400('invalid connection ID: missing from_stop_id')
+		if (!t_departure) throw err400('invalid connection ID: missing/invalid t_departure')
+		if (!t_arrival) throw err400('invalid connection ID: missing/invalid t_arrival')
+		if (!to_stop_id) throw err400('invalid connection ID: missing to_stop_id')
+
+		const res = await db.query({
+			// todo: add `name` to enable prepared statements
+			text: `
+				SELECT * -- todo: specific fields
+				FROM connections
+				WHERE trip_id = $1
+				AND from_stop_id = $2 AND to_stop_id = $3
+				AND t_departure = $4 AND t_arrival = $5
+				LIMIT 2
+			`,
+			values: [
+				trip_id,
+				from_stop_id, to_stop_id,
+				t_departure, t_arrival,
+			],
+		})
+		if (res.rows.length === 0) {
+			const err = new Error('no such connection')
+			err.statusCode = 404
+			throw err
+		}
+		if (res.rows.length > 1) {
+			const err = new Error('connection signature matches >1 connection')
+			err.statusCode = 500
+			throw err
+		}
+		const [c] = res.rows
+
+		return formatConnection(c)
+	}
+
 	return serveLinkedConnections({
 		...opt,
 		findConnections,
+		getConnection,
 	})
 }
 
