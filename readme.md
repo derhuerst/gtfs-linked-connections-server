@@ -20,7 +20,9 @@ npm install gtfs-linked-connections-server
 
 ## Usage
 
-Follow [`gtfs-via-postgres`' instructions on importing data](https://github.com/public-transport/gtfs-via-postgres/blob/main/readme.md), then serve it as Linked Connections via HTTP.
+Follow [`gtfs-via-postgres`' instructions on importing data](https://github.com/public-transport/gtfs-via-postgres/blob/main/readme.md). Make sure to use the `--stops-location-index` flag.
+
+Then serve the imported data as Linked Connections via HTTP:
 
 ```shell
 psql -c 'create database gtfs'
