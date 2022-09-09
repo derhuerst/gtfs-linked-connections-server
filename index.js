@@ -220,6 +220,29 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		}
 	}
 
+	const getStop = async (id) => {
+		const res = await db.query({
+			// todo: add `name` to enable prepared statements
+			text: `
+				SELECT * -- todo: specific fields
+				FROM stops
+				WHERE stop_id = $1
+				LIMIT 1
+			`,
+			values: [
+				id,
+			],
+		})
+		if (res.rows.length === 0) {
+			const err = new Error('no such stop')
+			err.statusCode = 404
+			throw err
+		}
+		const [s] = res.rows
+
+		return formatStop(s)
+	}
+
 	const findConnections = async (query) => {
 		const {
 			// todo: rename to minDepartureTime, add maxDepartureTime
@@ -348,6 +371,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 	return serveLinkedConnections({
 		...opt,
 		findStops,
+		getStop,
 		findConnections,
 		getConnection,
 	})
