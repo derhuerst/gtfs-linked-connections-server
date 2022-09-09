@@ -143,6 +143,83 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 		}
 	}
 
+	const findStops = async (query) => {
+		// todo: allow multi-column pagination via JSON/URLSearchParams?
+		// todo: DRY with findConnections, e.g. as `findPage`?
+		const values = []
+		let filters = 'True'
+		let order = 'ASC'
+		let defaultPage = true
+		if (query.after) {
+			values.push(query.after)
+			filters += ' AND stop_id > $1'
+			defaultPage = false
+		} else if (query.before) {
+			// todo: switch order?
+			values.push(query.before)
+			filters += ' AND stop_id < $1'
+			order = 'DESC'
+			defaultPage = false
+		}
+
+		const res = await db.query({
+			// todo: add `name` to enable prepared statements
+			text: `
+				SELECT * -- todo: specific fields
+				FROM stops
+				WHERE ${filters}
+				ORDER BY stop_id ${order}
+				LIMIT 50 -- todo: make customisable
+			`,
+			values,
+		})
+
+		let greaterRelation = null
+		if (res.rows.length > 0) {
+			const firstRow = res.rows[0] // descending, first row is the "largest"
+			greaterRelation = {
+				'@type': 'tree:GreaterThanRelation',
+				'tree:node': '?' + encodeQuery({
+					...omit(query, ['before']),
+					after: firstRow.stop_id,
+				}),
+				// todo: is this correct?
+				// > dct:identifier - original local identifier within the GTFS ZIP file
+				// https://github.com/OpenTransport/linked-gtfs/blob/fc12d51feed4a29cb83384b360de5df8c5c5a7db/spec.md#gtfsstop
+				'tree:path': 'dct:identifier',
+				'tree:value': {
+					'@type': 'xsd:string',
+					'@value': firstRow.stop_id, // todo: last row? not first?
+				},
+			}
+		}
+		let smallerRelation = null
+		if (res.rows.length > 0 && !defaultPage) {
+			const lastRow = res.rows[res.rows.length - 1] // ascending, last row is the "largest"
+			smallerRelation = {
+				'@type': 'tree:SmallerThanRelation',
+				'tree:node': '?' + encodeQuery({
+					...omit(query, ['after']),
+					before: lastRow.stop_id,
+				}),
+				// todo: is this correct?
+				// > dct:identifier - original local identifier within the GTFS ZIP file
+				// https://github.com/OpenTransport/linked-gtfs/blob/fc12d51feed4a29cb83384b360de5df8c5c5a7db/spec.md#gtfsstop
+				'tree:path': 'dct:identifier',
+				'tree:value': {
+					'@type': 'xsd:string',
+					'@value': lastRow.stop_id, // todo: first row? not last?
+				},
+			}
+		}
+
+		return {
+			stops: res.rows.map(formatStop),
+			// todo: sth like version or Last-Modified
+			relations: [greaterRelation, smallerRelation],
+		}
+	}
+
 	const findConnections = async (query) => {
 		const {
 			// todo: rename to minDepartureTime, add maxDepartureTime
@@ -270,6 +347,7 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 
 	return serveLinkedConnections({
 		...opt,
+		findStops,
 		findConnections,
 		getConnection,
 	})
