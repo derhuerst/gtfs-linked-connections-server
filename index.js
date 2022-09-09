@@ -64,6 +64,8 @@ const serveGtfsAsLinkedConnections = async (opt = {}) => {
 	}
 
 	const db = await getDbClient()
+	// check if DB is available
+	await db.query('SELECT 1')
 
 	const formatCoords = (lon, lat) => {
 		if ('number' !== typeof lon || 'number' !== typeof lat) return null
