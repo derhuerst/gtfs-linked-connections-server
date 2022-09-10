@@ -2,7 +2,7 @@
 	"private": true,
 	"name": "gtfs-linked-connections-server",
 	"description": "A Linked Connections server using PostgreSQL to serve GTFS.",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"main": "index.js",
 	"bin": {
 		"serve-gtfs-as-lc": "cli.js"
@@ -10,6 +10,7 @@
 	"files": [
 		"cli.js",
 		"index.js",
+		"lib",
 		"example.js"
 	],
 	"keywords": [
