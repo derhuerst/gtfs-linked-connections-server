@@ -8,10 +8,9 @@ const PORT = parseInt(process.env.PORT || '3000')
 
 ;(async () => {
 	const app = await gtfsLinkedConnectionsServer()
-
 	const server = createServer(app)
-	const pListen = promisify(server.listen.bind(server))
 
+	const pListen = promisify(server.listen.bind(server))
 	await pListen(PORT)
 	console.info(`Linked Connections server listening on port ${PORT}`)
 })()
