@@ -34,19 +34,9 @@ npm exec -- gtfs-to-sql --require-dependencies -- gtfs/*.txt | psql -b
 Then serve the imported data as Linked Connections via HTTP:
 
 ```shell
-# create HTTP server that serves Linked Connections
+# start HTTP server that serves Linked Connections
 npm install gtfs-linked-connections-server
-cat >index.js <<- EOM
-const {createServer} = require('http')
-const serveGtfsLinkedConnections = require('gtfs-linked-connections-server')
-
-const app = await serveGtfsLinkedConnections()
-
-const server = createServer(app)
-server.listen(3000)
-EOM
-
-node index.js
+npm exec -- serve-gtfs-as-lc
 ```
 
 
